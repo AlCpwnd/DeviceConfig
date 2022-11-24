@@ -1,5 +1,6 @@
 # Device Configuration
 > PowerShell ran as admin.
+
 Summary of commands used to configure a machine.
 
 ---
@@ -18,6 +19,7 @@ Get-AppxPackage -AllUsers | Where-Object{$_.Name -match "HP"} | Remove-AppxPacka
 
 ## Application installation
 > This is assuming [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) is installed on the device you're configuring.
+
 Will install all application listed in [Install.txt](Install.txt).
 ```ps
 (Invoke-WebRequest -Uri https://raw.githubusercontent.com/AlCpwnd/AdminTools/main/Tests/Install.txt).Content.Split() | ForEach-Object{winget install -e --id $_ -h}
