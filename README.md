@@ -11,7 +11,7 @@ Summary of commands used to configure a machine.
 Removes all pre-installed HP Security components.
 ```ps
 $Apps = WMIC PRODUCT GET NAME /FORMAT:CSV | Convertfrom-Csv
-$Apps | Where-Object{$_.Name -match "HP*Security*"} | Foreach-Object{Invoke-Expression "cmd /c wmic where `"Name like `'$($_.Name)`'`" call uninstall /nointeractive"}
+$Apps | Where-Object{$_.Name -like "HP*Security*"} | Foreach-Object{Invoke-Expression "cmd /c wmic where `"Name like `'$($_.Name)`'`" call uninstall /nointeractive"}
 Get-AppxPackage -AllUsers | Where-Object{$_.Name -match "HP"} | Remove-AppxPackage -AllUsers
 ```
 
