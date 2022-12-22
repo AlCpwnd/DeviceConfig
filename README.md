@@ -31,7 +31,7 @@ Will install all application listed in [Install.txt](Install.txt).
 Will uninstall all installed Office application from the device.
 ```ps
 winget install -e --id Microsoft.OfficeDeploymentTool -h
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/AlCpwnd/DeviceConfig/main/OdtUninstall.xml -OutFile "C:\Program Files\OfficeDeploymentTool\Uninstall.xml"
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/AlCpwnd/DeviceConfig/main/OdtUninstall.xml -OutFile "C:\Program Files\OfficeDeploymentTool\Uninstall.xml" -UseBasicParsing
 & 'C:\Program Files\OfficeDeploymentTool\setup.exe' /Configure 'C:\Program Files\OfficeDeploymentTool\Uninstall.xml'
 ```
 
