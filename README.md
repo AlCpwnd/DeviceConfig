@@ -5,6 +5,11 @@ Summary of commands used to configure a machine.
 
 ---
 
+## Automation
+Folders contains the scripts and instructions in order to automate new device configuration.
+
+---
+
 ## Bloatware removal
 
 ### HP
