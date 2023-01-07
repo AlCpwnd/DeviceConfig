@@ -1,0 +1,34 @@
+<?xml version = "1.0"?>
+<Config Name="BaseConfig">
+    <WindowsApps>
+        <BloatWareRemoval>True</BloatWareRemoval>
+        <AppInstallation Enabled="True">
+            <App ID="Google.Chrome"/>
+            <App ID="Adobe.Acrobat.Reader.64-bit"/>
+            <App ID="Oracle.JavaRuntimeEnvironment"/>
+            <App ID="Fortinet.FortiClientVPN"/>
+            <App ID="7zip.7zip"/>
+        </AppInstallation>
+        <AppUpdate>True</AppUpdate>
+    </WindowsApps>
+    <PowerOptions Eabled="True">
+        <DisableHybernate>True</DisableHybernate>
+        <Battery>
+            <DisplayTurnOff>30</DisplayTurnOff>
+            <SleepTimer>60</SleepTimer>
+        </Battery>
+        <Plugged>
+            <DisplayTurnOff>60</DisplayTurnOff>
+            <SleepTimer>0</SleepTimer>
+        </Plugged>
+    </PowerOptions>
+    <OfficeInstall>
+        <UninstallPreloaded>True</UninstallPreloaded>
+        <ConfigFile></ConfigFile>
+    </OfficeInstall>
+    <WindowsUpdates>True</WindowsUpdates>
+    <System>
+        <EnableUAC>True</EnableUAC>
+        <UninstallModules>True</UninstallModules>
+    </System>
+</Config>
