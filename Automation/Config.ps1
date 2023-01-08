@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory,ParameterSetName='Cfg')][String]$ConfigPath,
+    [Parameter(Mandatory,ParameterSetName='Cfg')][String]$Global:ConfigPath,
     [Parameter(Mandatory,ParameterSetName='Template')][Switch]$ExportConfig
 )
 
@@ -59,10 +59,18 @@ function Remove-BloatWare{
 function Install-Update{
     $Module = Get-Module -Name PSWindowsUpdate -ListAvailable
     if($Module){
+        $MaxRebootCount = $Global:Config.Config.WindowsUpdates.$MaxRebootCount
+        $Log = Get-Content $Global:LogFile
+        [int]$CurrentRebootCount = ($Log | Where-Object{$_ -match '`| UpdateCount: '}).Split()[-1]
+        show-info "Checking available updates"
         $Updates = Get-WindowsUpdate
-        if($Updates){
-            $cfg.RebootCount++
+        if($Updates -and $CurrentRebootCount -lt $MaxRebootCount){
+            $CurrentRebootCount++
+            $Log.Replace(($Log | Where-Object{$_ -match "UpdateCount:"}),"| UpdateCount: $CurrentRebootCount") | Out-File $Global:LogFile
+            show-info "Updates found. Current reboot count: $CurrentRebootCount"
             Install-WindowsUpdate -AcceptAll -AutoReboot
+        }else{
+            return
         }
     }else{
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
@@ -97,24 +105,54 @@ function show-error{
 
 ## Verifies if the given configruation file is valid
 try{
-    [xml]$Config = Get-Content $ConfigPath -ErrorAction Stop
+    [xml]$Global:Config = Get-Content $Global:ConfigPath -ErrorAction Stop
 }catch{
-    Write-Host "Invalid config file: $ConfigPath" @Inverted
+    Write-Host "Invalid config file: $Global:ConfigPath" @Inverted
     return
 }
 
-
+## Defines the path to the log file
 $Global:LogFile = "$PSScriptRoot\Logs_$Env:COMPUTERNAME.txt"
 
+## Creates the log file if it doesn't exist already
 if(!(Test-Path $Global:LogFile)){
     $SystemInfo = Get-WMIObject -class Win32_ComputerSystem
-    $Header = "| Date: $(Get-Date -Format dd/MM/yyyy)","|","| Config.ps1 log file.","|","| Serial N°: `t$((Get-WmiObject win32_bios).SerialNumber)","| Brand: `t$($SystemInfo.Brand)","| Model: `t$($SystemInfo.Model)","$("="*40)"
+    $Header = "$("="*40)","| Date: $(Get-Date -Format dd/MM/yyyy)","|","| Config.ps1 log file.","|","| Serial N°: `t$((Get-WmiObject win32_bios).SerialNumber)","| Brand: `t$($SystemInfo.Brand)","| Model: `t$($SystemInfo.Model)","$("="*40)"
     $Header | Out-File $Global:LogFile
-    show-info "Initiating script."
+    if($Global:Config.Config.WindowsUpdates){
+        Add-Content $Global:LogFile -Value "| UpdateCount: 0"
+        Add-Content $Global:LogFile -Value "$("="*40)"
+    }
+    show-info "Initiating script"
 }
 
-if($Config.Config.WindowsApps.BloatWareRemoval){
+## Windows update installation
+if($Global:Config.Config.WindowsUpdates.Enabled){
+    Install-Update
+}
+
+## Bloatware removal
+if($Global:Config.Config.WindowsApps.BloatWareRemoval){
     Remove-BloatWare $SystemInfo.Brand
+}
+
+## Office removal
+$OfficeConfig = $Config.Config.OfficeInstall
+if($OfficeConfig.Enabled){
+    $OdtTest = Test-Path 'C:\Program Files\OfficeDeploymentTool\setup.exe'
+    if(!$OdtTest){
+        show-info "Attempting to install Office Deployment Tool"
+        winget install --id Microsoft.OfficeDeploymentTool -e
+    }
+    if($OfficeConfig.UninstallPreloaded -and !(Test-Path 'C:\Program Files\OfficeDeploymentTool\Uninstall.xml')){
+        $UninstallXml = '<Configuration>
+        <Remove All="TRUE">
+        </Remove>
+        <Display Level="None" AcceptEULA="TRUE" />
+        </Configuration>'
+        $UninstallXml | Out-File 'C:\Program Files\OfficeDeploymentTool\Uninstall.xml'
+        & 'C:\Program Files\OfficeDeploymentTool\setup.exe' /Configure 'C:\Program Files\OfficeDeploymentTool\Uninstall.xml'
+    }
 }
 
 #################################################

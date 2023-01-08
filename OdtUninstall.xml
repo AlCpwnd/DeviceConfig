@@ -2,5 +2,4 @@
 <Remove All="TRUE">
 </Remove>
 <Display Level="None" AcceptEULA="TRUE" />
-<Logging Path ="C:\temp\O365"/>
 </Configuration>

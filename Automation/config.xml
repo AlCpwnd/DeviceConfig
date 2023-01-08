@@ -22,11 +22,13 @@
             <SleepTimer>0</SleepTimer>
         </Plugged>
     </PowerOptions>
-    <OfficeInstall>
+    <OfficeInstall Enabled="True">
         <UninstallPreloaded>True</UninstallPreloaded>
         <ConfigFile></ConfigFile>
     </OfficeInstall>
-    <WindowsUpdates>True</WindowsUpdates>
+    <WindowsUpdates Enabled="True">
+        <MaxRebootCount>10</MaxRebootCount>
+    </WindowsUpdates>
     <System>
         <EnableUAC>True</EnableUAC>
         <UninstallModules>True</UninstallModules>
