@@ -1,11 +1,21 @@
 # Requires -RunAsAdministrator
 
+# Disables UAC
+$RegistryItem = @{
+    Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\"
+    Name = "EnableLUA"
+}
+if((Get-ItemProperty @RegistryItem).EnableLUA){
+    Set-ItemProperty @RegistryItem -Value 0
+    Restart-Computer
+}
+
 # Verifies ExecutionPolicy
 if((Get-ExecutionPolicy) -ne "RemoteSigned"){
     Set-ExecutionPolicy RemoteSigned -Force
 }
 
-# Installing the module if not already installed.
+# Installing the module if not already installed
 $ModuleCheck = Get-Module -Name PSWindowsUpdate -ListAvailable
 if(!$ModuleCheck){
     $PackageProviderCheck = Get-PackageProvider -Name NuGet
@@ -39,7 +49,7 @@ if(!$LinkTest){
     $Shortcut.Save()
 }
 
-# Updating device.
+# Updating device
 try{
     Import-Module PSWindowsUpdate
     $AvailableUpdates = Get-WindowsUpdate
