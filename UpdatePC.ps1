@@ -20,7 +20,6 @@ if($Status -eq 'Start'){
     }
     if((Get-ItemProperty @RegistryItem).EnableLUA){
         Set-ItemProperty @RegistryItem -Value 0
-        Restart-Computer
     }
 
     # Verifies ExecutionPolicy
@@ -55,36 +54,38 @@ if($Status -eq 'Start'){
 
     # Generating post restart script run
     $Links = @{
-        Path = "$Env:PUBLIC\Desktop\Start.lnk"
-        Parameters = "Start"
-        Icon = "imageres.dll,233"
-    },@{
-        Path = "$Env:PUBLIC\Desktop\Retry.lnk"
-        Parameters = "Retry"
-        Icon = "imageres.dll,231"
-    },@{
-        Path = "$Env:PUBLIC\Desktop\Stop.lnk"
-        Parameters = "Stop"
-        Icon = "imageres.dll,230"
-    },@{
-        Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\UpdatePC.lnk"
-        Parameters = "Retry"
-        Icon = "imageres.dll,233"
-    }
+            Path = "$Env:PUBLIC\Desktop\Start.lnk"
+            Parameters = "Start"
+            Icon = "imageres.dll,232"
+        },@{
+            Path = "$Env:PUBLIC\Desktop\Retry.lnk"
+            Parameters = "Retry"
+            Icon = "imageres.dll,230"
+        },@{
+            Path = "$Env:PUBLIC\Desktop\Stop.lnk"
+            Parameters = "Stop"
+            Icon = "imageres.dll,229"
+        },@{
+            Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\UpdatePC.lnk"
+            Parameters = "Retry"
+            Icon = "imageres.dll,233"
+        }
     Write-Host "Creating shortcuts"
     foreach($Link in $Links){
         $LinkTest = Test-Path $Link.Path
         if(!$LinkTest){
+            $Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -File $PSCommandPath $($Link.Parameter)"
             $WshShell = New-Object -comObject WScript.Shell
             $Shortcut = $WshShell.CreateShortcut($Link.Path)
-            $Shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-            $Shortcut.Arguments = "-NoLogo -NoExit -NoProfile -File $PSCommandPath $($Link.Parameter)"
+            $Shortcut.TargetPath = $Command
             if(Test-Path $env:SystemRoot\System32\imageres.dll){
                 $Shortcut.IconLocation = $Link.Icon
             }
             $Shortcut.Save()
         }
     }
+
+    Restart-Computer
 }
 
 if($Status -eq 'Stop'){
@@ -93,14 +94,15 @@ if($Status -eq 'Stop'){
     $Links | ForEach-Object{Remove-Item $_ -Force}
 
     # Schedules removal of the script
-    New-ItemProperty -Path HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce -Name '!ScriptRemoval' -PropertyType 'String'  -Value "cmd /c DEL $PSCommandPath /F /Q"
+    New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce -Name '!ScriptRemoval' -PropertyType 'String'  -Value "cmd /c DEL $PSCommandPath /F /Q"
 
     # Enables UAC
-    $RegistryItem = @{
+    $UAC = @{
         Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\"
         Name = "EnableLUA"
+        Value = 1
     }
-    Set-ItemProperty @RegistryItem -Value 0
+    Set-ItemProperty @UAC
 
     Restart-Computer
 }
@@ -114,7 +116,9 @@ try{
         Write-Host "Installing updates"
         Install-WindowsUpdate -AcceptAll -AutoReboot -ErrorAction Stop
     }else{
+        Write-Host "No new updates detected"
         Write-Host "Removing startup link"
+        $LinkPath = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\UpdatePC.lnk"
         Remove-Item $LinkPath -Force
         & cmd /c msg * "Device updates are done."
     }
