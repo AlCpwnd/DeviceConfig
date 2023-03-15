@@ -52,7 +52,7 @@ function Remove-BloatWare{
             $Apps | Where-Object{$_.Name -like "HP*Security*"} | Foreach-Object{Invoke-Expression "cmd /c wmic product where `"Name like `'$($_.Name)`'`" call uninstall /nointeractive"}
             Get-AppxPackage -AllUsers | Where-Object{$_.Name -match "HP" -and $_.Name -notmatch "Realtek"} | Remove-AppxPackage -AllUsers
         }
-        Default {Write-Host "Current brand isn't supported. No programs have been removed."}
+        Default {show-error "Current brand isn't supported. No programs have been removed."}
     }
 }
 
@@ -88,7 +88,7 @@ function show-info{
 
 function show-error{
     param([Parameter(Mandatory,Position=0)][String]$Txt)
-    $Inverted = @{
+    $Global:Inverted = @{
         ForegroundColor = $Host.UI.RawUI.BackgroundColor
         BackgroundColor = $Host.UI.RawUI.ForegroundColor
     }
@@ -103,16 +103,16 @@ function show-error{
 
 # Script : ######################################
 
+## Defines the path to the log file
+$Global:LogFile = "$PSScriptRoot\Logs_$Env:COMPUTERNAME.txt"
+
 ## Verifies if the given configruation file is valid
 try{
     [xml]$Global:Config = Get-Content $Global:ConfigPath -ErrorAction Stop
 }catch{
-    Write-Host "Invalid config file: $Global:ConfigPath" @Inverted
+    show-error "Invalid config file: $Global:ConfigPath" @Inverted
     return
 }
-
-## Defines the path to the log file
-$Global:LogFile = "$PSScriptRoot\Logs_$Env:COMPUTERNAME.txt"
 
 ## Creates the log file if it doesn't exist already
 if(!(Test-Path $Global:LogFile)){
