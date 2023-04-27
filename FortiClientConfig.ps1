@@ -23,7 +23,7 @@ param(
 
     [Parameter(ParameterSetName='Manual')]
     [Parameter(ParameterSetName='SSO')]
-    [Swicth]$AcceptEULA,
+    [Switch]$AcceptEULA,
 
     [Parameter(ParameterSetName='Manual')]
     [Parameter(ParameterSetName='SSO')]
@@ -38,7 +38,22 @@ if(!(Test-Path $ConfigKey)){
     New-Item $ConfigKey -Force
 }
 
+if($Description){
+    New-ItemProperty $ConfigKey -Name Description -PropertyType String -Value $Description
+}
 
+if($Port){
+    $RemoteGateway = $RemoteGateway | ForEach-Object{"$_`:$Port"}
+}
+
+New-ItemProperty $ConfigKey -Name Server -PropertyType String -Value $($RemoteGateway -join ';')
+
+if($SingleSignOn){
+    New-ItemProperty $ConfigKey -Name sso_enabled -PropertyType DWORD -Value 1
+    if($ExternalBrowserAuthentication){
+        New-ItemProperty $ConfigKey -Name use_external_browser -PropertyType DWORD -Value 1
+    }
+}
 
 if($AcceptEULA){
     if($Verion){
