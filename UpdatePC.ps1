@@ -4,16 +4,21 @@ param(
 
 #Requires -RunAsAdministrator
 
+$LogOutputParam = @{
+    FilePath = "C:\$Env:COMPUTERNAME.txt"
+    Appent = $true
+}
+
 if($Status -eq 'Start'){
     # Changes power options
-    Write-Host "Configuring Power settings"
+    "Configuring Power settings" | Out-File @LogOutputParam
     & Powercfg /Change monitor-timeout-ac 60
     & Powercfg /Change monitor-timeout-dc 0
     & Powercfg /Change standby-timeout-ac 0
     & Powercfg /Change standby-timeout-dc 0
 
     # Disables UAC
-    Write-Host "Disabling UAC"
+    "Disabling UAC"
     $RegistryItem = @{
         Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\"
         Name = "EnableLUA"
@@ -24,7 +29,7 @@ if($Status -eq 'Start'){
 
     # Verifies ExecutionPolicy
     if((Get-ExecutionPolicy) -ne "RemoteSigned"){
-        Write-Host "Changing local execution policy"
+        "Changing local execution policy" | Out-File @LogOutputParam
         Set-ExecutionPolicy RemoteSigned -Force
     }
 
@@ -34,20 +39,20 @@ if($Status -eq 'Start'){
         $PackageProviderCheck = Get-PackageProvider
         if($PackageProviderCheck.Name -notcontains "NuGet"){
             try{
-                Write-Host "Installing package provider"
+                "Installing package provider" | Out-File @LogOutputParam
                 Install-PackageProvider -Name NuGet -Force -ErrorAction Stop
             }catch{
-                Write-Host "Failed to install required Package Provider `"Nuget`"" -ForegroundColor Red
-                Write-Host "Aborting script." -ForegroundColor Red
+                "Failed to install required Package Provider `"Nuget`"" | Out-File @LogOutputParam
+                "Aborting script." | Out-File @LogOutputParam
                 Return
             }
         }
         try{
-            Write-Host "Installing PSWindowsUpdate module"
+            "Installing PSWindowsUpdate module" | Out-File @LogOutputParam
             Install-Module -Name PSWindowsUpdate -Force -ErrorAction Stop
         }catch{
-            Write-Host "Failed to install module `"PSWindowsUpdate`"" -ForegroundColor Red
-            Write-Host "Aborting script." -ForegroundColor Red
+            "Failed to install module `"PSWindowsUpdate`"" | Out-File @LogOutputParam
+            "Aborting script." | Out-File @LogOutputParam
             return
         }
     }
@@ -70,7 +75,7 @@ if($Status -eq 'Start'){
             Parameters = "Retry"
             Icon = "imageres.dll,233"
         }
-    Write-Host "Creating shortcuts"
+    "Creating shortcuts"
     foreach($Link in $Links){
         $LinkTest = Test-Path $Link.Path
         if(!$LinkTest){
@@ -110,14 +115,14 @@ if($Status -eq 'Stop'){
 # Updating device
 try{
     Import-Module PSWindowsUpdate
-    Write-Host "Recovering available updates"
+    "Recovering available updates" | Out-File @LogOutputParam
     $AvailableUpdates = Get-WindowsUpdate
     if($AvailableUpdates){
-        Write-Host "Installing updates"
+        "Installing updates" | Out-File @LogOutputParam
         Install-WindowsUpdate -AcceptAll -AutoReboot -ErrorAction Stop
     }else{
-        Write-Host "No new updates detected"
-        Write-Host "Removing startup link"
+        "No new updates detected" | Out-File @LogOutputParam
+        "Removing startup link" | Out-File @LogOutputParam
         $LinkPath = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\UpdatePC.lnk"
         Remove-Item $LinkPath -Force
         & cmd /c msg * "Device updates are done."
