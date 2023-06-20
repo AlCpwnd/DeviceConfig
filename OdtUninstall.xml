@@ -1,6 +1,11 @@
 <Configuration>
 <Remove All="TRUE">
 </Remove>
+<<<<<<< HEAD
 <Display Level="Full" AcceptEULA="TRUE" />
 <Logging Path ="C:\temp\O365"/>
 </Configuration>
+=======
+<Display Level="None" AcceptEULA="TRUE" />
+</Configuration>
+>>>>>>> WUIntegration
