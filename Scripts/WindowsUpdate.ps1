@@ -1,5 +1,9 @@
 #Requires -RunAsAdministrator
 
+param(
+    [Switch]$Auto
+)
+
 function Set-Environment {
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -20,9 +24,19 @@ function Set-Environment {
 }
 
 function Update-Computer {
+    param(
+        [Switch]$AutoReboot
+    )
     if(!(Set-Environment)){
         throw 'Failed to configure environment.'
     }else{
+        $Parameters = @{
+            AcceptAll = $true
+            OutVariable = 'InstallResult'
+        }
+        if($AutoReboot){
+            $Parameters | Add-Member -MemberType NoteProperty -Name AutoReboot -Value $true
+        }
         $Continue = $true
         $Tries = 1
         while($Continue -and $Tries -lt 4){
@@ -30,7 +44,7 @@ function Update-Computer {
             Get-WindowsUpdate -OutVariable UpdateTest | Out-Host
             if($UpdateTest.Status -contains '-------'){
                 Write-Host 'Installing updates.'
-                Install-WindowsUpdate -AcceptAll -OutVariable InstallResult | Out-Host
+                Install-WindowsUpdate @Parameters | Out-Host
             }else{
                 $Continue = $false
             }
