@@ -80,13 +80,6 @@ function Update-Computer {
     if(!(Set-Environment)){
         throw 'Failed to configure environment.'
     }else{
-        $Parameters = @{
-            AcceptAll = $true
-            OutVariable = 'InstallResult'
-        }
-        if($AutoReboot){
-            $Parameters | Add-Member -MemberType NoteProperty -Name AutoReboot -Value $true
-        }
         $Continue = $true
         $Tries = 1
         while($Continue -and $Tries -lt 4){
@@ -94,7 +87,10 @@ function Update-Computer {
             Get-WindowsUpdate -OutVariable UpdateTest | Out-Host
             if($UpdateTest.Status -contains '-------'){
                 Write-Host 'Installing updates.'
-                Install-WindowsUpdate @Parameters | Out-Host
+                Install-WindowsUpdate -AcceptAll -IgnoreReboot -OutVariable InstallResult | Out-Host
+                if($AutoReboot -and $InstallResult.ReboorRequired -contains 'True'){
+                    Restart-Computer
+                }
             }else{
                 $Continue = $false
             }
@@ -107,9 +103,32 @@ function Update-Computer {
         }
         Write-Host 'SuccessFully installed updates.'
     }
+        <#
+        .SYNOPSIS
+        Installs Windows updates.
+
+        .DESCRIPTION
+        Downloads and installs available Windows updates.
+
+        .PARAMETER AutoReboot
+        Will restart the computer once the updates installed if one of them require it.
+
+        .INPUTS
+        None. You can't pipe objects to Update-Computer.
+
+        .OUTPUTS
+        Host prompts regarding the state of the update installation.
+    #>
 }
 
 <#| Script Start |#>
+
+# Future use facilitation
+## Numlock at boot
+$RKey = Get-ItemProperty 'registry::HKEY_USERS\.DEFAULT\Control Panel\Keyboard\'
+if($RKey.InitialKeyboardIndicators -ne 2147483650){
+    Set-ItemProperty 'registry::HKEY_USERS\.DEFAULT\Control Panel\Keyboard\' -Name 'InitialKeyboardIndicators' -Value 2147483650
+}
 
 # Update installation
 $Flag = Get-Content $FilePath | Where-Object{$_ -match '#Windows_Update_Skip#|#Windows_Update_Done#'}
