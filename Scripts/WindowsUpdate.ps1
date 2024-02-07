@@ -63,10 +63,12 @@ function Update-Computer {
     }else{
         $Continue = $true
         $Tries = 1
+        $InstalledUpdates = @()
         while($Continue -and $Tries -lt 4){
             Write-Host 'Checking updates.'
-            Get-WindowsUpdate -OutVariable UpdateTest | Out-Host
-            if($UpdateTest.Status -contains '-------'){
+            Get-WindowsUpdate -OutVariable AvailableUpdates | Out-Host
+            $UpdateTest = Compare-Object -ReferenceObject $InstalledUpdates -DifferenceObject $AvailableUpdates.Title -IncludeEqual
+            if($UpdateTest.SideIndicator -contains '=>'){
                 Write-Host 'Installing updates.'
                 Install-WindowsUpdate -AcceptAll -IgnoreReboot -OutVariable InstallResult | Out-Host
                 if($AutoReboot -and $InstallResult.ReboorRequired -contains 'True'){
@@ -75,6 +77,7 @@ function Update-Computer {
             }else{
                 $Continue = $false
             }
+            $InstalledUpdates += ($InstallResult | Where-Object{$_.Result -ne 'Failed'}).Title
             if($InstallResult.Result -contains 'Failed'){
                 $Tries++
                 if($Tries -eq 3){
