@@ -64,6 +64,7 @@ function Update-Computer {
         $Continue = $true
         $Tries = 1
         $InstalledUpdates = @()
+        $RebootRequired = $false
         while($Continue -and $Tries -lt 4){
             Write-Host 'Checking updates.'
             Get-WindowsUpdate -IgnoreReboot -OutVariable AvailableUpdates | Out-Host
@@ -71,8 +72,11 @@ function Update-Computer {
             if($UpdateTest.SideIndicator -contains '=>'){
                 Write-Host 'Installing updates.'
                 Install-WindowsUpdate -AcceptAll -IgnoreReboot -OutVariable InstallResult | Out-Host
-                if($AutoReboot -and $InstallResult.ReboorRequired -contains 'True'){
-                    Restart-Computer
+                if($InstallResult.ReboorRequired -contains 'True'){
+                    $RebootRequired = $true
+                    if($AutoReboot){
+                        Restart-Computer
+                    }
                 }
             }else{
                 $Continue = $false
@@ -87,6 +91,10 @@ function Update-Computer {
         }
         Write-Host 'SuccessFully installed updates.'
     }
+    If($RebootRequired){
+        Write-Host 'You need to restart this computer in order to finalize the installation.' -ForegroundColor Yellow
+    }
+
         <#
         .SYNOPSIS
         Installs Windows updates.
