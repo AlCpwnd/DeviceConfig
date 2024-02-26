@@ -80,6 +80,10 @@ function Update-Computer {
                 }
             }else{
                 $Continue = $false
+                if($AutoReboot){
+                    $RegKey = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce\"
+                    New-ItemProperty -Path $RegKey -Name "!WindowsUpdate" -Value 'cmd /c del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"'
+                }
             }
             $InstalledUpdates += ($InstallResult | Where-Object{$_.Result -ne 'Failed'}).Title
             if($InstallResult.Result -contains 'Failed'){
@@ -103,7 +107,9 @@ function Update-Computer {
         Downloads and installs available Windows updates.
 
         .PARAMETER AutoReboot
-        Will restart the computer once the updates installed if one of them require it.
+        Will restart the computer if an update requires it and will continue updating once 
+        logged in.
+        The shortcut will be automatically removed if no additionnal updates are found.
 
         .INPUTS
         None. You can't pipe objects to Update-Computer.
@@ -114,25 +120,20 @@ function Update-Computer {
 }
 
 if($Auto){
-    $Link = @{
-        Parameter = '-Auto'
-        Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Config.lnk"
-        Icon = "%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe,0"
-    }
-    $LinkTest = Test-Path $Link.Path
+    $Path = "$Env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"
+    $LinkTest = Test-Path $Path
     if(!$LinkTest){
-        $Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath $Parameter"
-        $WshShell = New-Object -comObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut($Link.Path)
-        $Shortcut.TargetPath = $Command
-        if(Test-Path $env:SystemRoot\System32\imageres.dll){
-            $Shortcut.IconLocation = $Link.Icon
-        }
-        $Shortcut.Save()
+        $Command = "net session >nul 2>&1
+        if %errorLevel% == 0 (
+            goto Continue
+        ) else (
+            REM Restarts the script as admin.
+            powershell -command `"Start-Process %~dpnx0 -Verb runas`"
+        )
+        C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Auto"
+        Set-Content -Path $Path -Value $Command
     }
     Update-Computer -AutoReboot
-    Start-Sleep -Seconds 5
-    Remove-Item $Link.Path
 }Else{
     Update-Computer
 }
