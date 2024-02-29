@@ -68,6 +68,10 @@ function Update-Computer {
         while($Continue -and $Tries -lt 4){
             Write-Host 'Checking updates.'
             Get-WindowsUpdate -IgnoreReboot -OutVariable AvailableUpdates | Out-Host
+            if(!$AvailableUpdates){
+                Write-Host 'No updates found.'
+                break
+            }
             $UpdateTest = Compare-Object -ReferenceObject $InstalledUpdates -DifferenceObject $AvailableUpdates.Title -IncludeEqual
             if($UpdateTest.SideIndicator -contains '=>'){
                 Write-Host 'Installing updates.'
