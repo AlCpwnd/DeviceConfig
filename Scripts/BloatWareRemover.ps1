@@ -20,7 +20,7 @@ if(!$LinkTest){
 	Write-Verbose "Link Created"
 }
 
-# Defins the manufacturer and exceptions for application removal.
+# Defines the manufacturer and exceptions for application removal.
 Write-Verbose "Recovering computer information..."
 $Manufacturer = (Get-ComputerInfo -Property CsManufacturer).CsManufacturer
 $Exceptions = "Realtek|Intel|Microsoft|Windows"
