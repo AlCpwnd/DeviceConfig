@@ -50,3 +50,5 @@ if(!$Soft){
 	Remove-Item $Link.Path
 	Write-Host "No bloatware found."
 }
+
+Restart-Computer
