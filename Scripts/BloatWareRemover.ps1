@@ -43,6 +43,7 @@ $iMax = $Soft.Count
 foreach($SoftWare in $Soft){
 	Write-Progress -Activity 'Uninstalling' -Status $Software.Name -PercentComplete (($i/$iMax)*100)
 	$SoftWare.Uninstall()
+	$i++
 }
 
 if(!$Soft){
