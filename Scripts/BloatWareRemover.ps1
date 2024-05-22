@@ -3,13 +3,13 @@
 # Creates a link in the startup folder.
 $Link = @{
 	Parameter = ''
-	Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Config.lnk"
+	Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"
 	Icon = "%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe,0"
 }
 
 $LinkTest = Test-Path $Link.Path
 if(!$LinkTest){
-	$Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath $Parameter"
+	$Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath"
 	$WshShell = New-Object -comObject WScript.Shell
 	$Shortcut = $WshShell.CreateShortcut($Link.Path)
 	$Shortcut.TargetPath = $Command
@@ -35,15 +35,23 @@ $BloatWareApps | Remove-AppxPackage -AllUsers | Out-Null
 Write-Host "Removing applications from the template profile..."
 Get-AppxProvisionedPackage -Online | Where-Object{$_.DisplayName -match $Manufacturer -and $_.DisplayName -notmatch $Exceptions} | Remove-AppxProvisionedPackage -Online
 
-Write-Verbose "Recovering installed software..."
-$Soft = Get-WmiObject -Class Win32_Product | Where-Object{$_.Vendor -match $Manufacturer -and $_.Name -notmatch $Exceptions}
-Write-Host "Removing installed software..."
-$i = 0
-$iMax = $Soft.Count
-foreach($SoftWare in $Soft){
-	Write-Progress -Activity 'Uninstalling' -Status $Software.Name -PercentComplete (($i/$iMax)*100)
-	$SoftWare.Uninstall()
-	$i++
+$RetryCount = 0
+While($RetryCount -lt 3 -or $Retries){
+	Write-Verbose "Recovering installed software..."
+	$Soft = Get-WmiObject -Class Win32_Product | Where-Object{$_.Vendor -match $Manufacturer -and $_.Name -notmatch $Exceptions}
+	Write-Host "Removing installed software..."
+	$i = 0
+	$iMax = $Soft.Count
+	$Retries = @()
+	foreach($SoftWare in $Soft){
+		Write-Progress -Activity 'Uninstalling' -Status $Software.Name -PercentComplete (($i/$iMax)*100)
+		$Temp = $SoftWare.Uninstall()
+		if($Temp.ReturnValue){
+			$Retries += $SoftWare
+		}
+		$i++
+	}
+	$RetryCount++
 }
 
 if(!$Soft){
