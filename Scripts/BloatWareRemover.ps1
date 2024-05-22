@@ -1,23 +1,22 @@
 #Requires -RunAsAdministrator
 
 # Creates a link in the startup folder.
-$Link = @{
-	Parameter = ''
-	Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"
-	Icon = "%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe,0"
-}
+$Location = "$Env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"
 
-$LinkTest = Test-Path $Link.Path
-if(!$LinkTest){
-	$Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath"
-	$WshShell = New-Object -comObject WScript.Shell
-	$Shortcut = $WshShell.CreateShortcut($Link.Path)
-	$Shortcut.TargetPath = $Command
-	if(Test-Path $env:SystemRoot\System32\imageres.dll){
-		$Shortcut.IconLocation = $Link.Icon
-	}
-	$Shortcut.Save()
-	Write-Verbose "Link Created"
+$Script = 	"@echo off
+REM Verifies if the script is running as admin.
+net session >nul 2>&1
+if %errorLevel% == 0 (
+	goto Continue
+) else (
+	REM Restarts the script as admin.
+	powershell -command `"Start-Process %~dpnx0 -Verb runas`"
+)
+powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+"
+
+if(!(Test-Path $Location)){
+	$SCript | Out-File -FilePath $Location -Force
 }
 
 # Defines the manufacturer and exceptions for application removal.
@@ -55,7 +54,7 @@ While($RetryCount -lt 3 -or $Retries){
 }
 
 if(!$Soft){
-	Remove-Item $Link.Path
+	Remove-Item $Location
 	Write-Host "No bloatware found."
 }
 
