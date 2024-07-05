@@ -4,7 +4,8 @@ param(
     [Switch]$Finish
 )
 
-<#| Computer Setup |#>
+#-------------------------------------------------------------------------------------------------#
+# Environment Prep :
 
 $Date = Get-Date -Format yyyyMMdd
 
@@ -19,40 +20,44 @@ if(!(Test-Path $FilePath)){
     "[ Script start: $Date ]" | Out-File @LogParam
 }
 
-# Generating shortcuts.
-$Links = @{
-        Parameter = '-Finish'
-        Path = "$Env:PUBLIC\Desktop\Finish.lnk"
-        Icon = "%windir%\system32\cleanmgr.exe,0"
-    },@{
-        Parameter = ''
-        Path = "$Env:APPDATA\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Config.lnk"
-        Icon = "%SystemRoot%\system32\WindowsPowerShell\v1.0\powershell.exe,0"
-    }
-"Verifying shortcuts" | Out-File @LogParam
-foreach($Link in $Links){
-    $LinkTest = Test-Path $Link.Path
-    if(!$LinkTest){
-        $Command = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath $Parameter"
-        $WshShell = New-Object -comObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut($Link.Path)
-        $Shortcut.TargetPath = $Command
-        if(Test-Path $env:SystemRoot\System32\imageres.dll){
-            $Shortcut.IconLocation = $Link.Icon
-        }
-        $Shortcut.Save()
-        "Link created: $($Link.Path)" | Out-File @LogParam
-    }
+# Preparing reboot script.
+$Path = "$Env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\Restart.bat"
+$LinkTest = Test-Path $Path
+if(!$LinkTest){
+    $Command = "net session >nul 2>&1
+    if %errorLevel% == 0 (
+        goto Continue
+    ) else (
+        powershell -command `"Start-Process %~dpnx0 -Verb runas`"
+    )
+    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Auto"
+    Set-Content -Path $Path -Value $Command
+}
+
+# Preparing Ending script.
+$Path = "$env:PUBLIC\Desktop\Finish.bat"
+$LinkTest = Test-Path $Path
+if(!$LinkTest){
+    $Command = "net session >nul 2>&1
+    if %errorLevel% == 0 (
+        goto Continue
+    ) else (
+        powershell -command `"Start-Process %~dpnx0 -Verb runas`"
+    )
+    C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Finish"
+    Set-Content -Path $Path -Value $Command
 }
 
 # Verify if this is the first run.
 $Flag = Get-Content -Path $FilePath | Where-Object{$_ -match '#UAC_Reboot#'}
 if(!$Flag){
+    # Restart the computer in order to apply the UAC changes.
     '#UAC_Reboot#' | Out-File @LogParam
     Restart-Computer -Force
 }
 
-<#| Defining functions |#>
+#-------------------------------------------------------------------------------------------------#
+# Defining Functions :
 
 function Set-Environment {
     try {
@@ -121,7 +126,8 @@ function Update-Computer {
     #>
 }
 
-<#| Script Start |#>
+#-------------------------------------------------------------------------------------------------#
+# Script :
 
 # Future use facilitation
 ## Numlock at boot
@@ -138,4 +144,26 @@ if(!$Flag){t
     }catch{
         'Failed to install Windows updates.','#Windows_Update_Skip#' | Out-File @LogParam
     }
+}
+
+#-------------------------------------------------------------------------------------------------#
+# End & Cleanup :
+
+if($Finish){
+    # Copies the log file back to the original start location.
+    $OriginFile = 'C:\Setup\ScriptOrigin.txt'
+    if(Test-Path -Path $OriginFile){
+        try{
+            $Origin = Get-Content -Path $OriginFile
+            # Skips the log copy if the origin is the same device.
+            if($Origin -notmatch 'C:'){
+                Copy-Item -Path $LogParam.FilePath -Destination $Origin -ErrorAction Stop
+            }
+        }catch{
+            Write-Host "Failed to copy logs back to : $Origin"
+        }
+    }
+
+    # Re-enables UAC.
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'EnableLUA' -Value 1
 }
