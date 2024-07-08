@@ -15,7 +15,7 @@ $LogParam = @{
 }
 
 # Generates the logfile at the script root if it doesn't exist.
-if(!(Test-Path $FilePath)){
+if(!(Test-Path $LogParam.FilePath)){
     $Date = Get-Date -Format 'dd/MM/yyyy hh:MM'
     "[ Script start: $Date ]" | Out-File @LogParam
 }
@@ -49,11 +49,19 @@ if(!$LinkTest){
 }
 
 # Verify if this is the first run.
-$Flag = Get-Content -Path $FilePath | Where-Object{$_ -match '#UAC_Reboot#'}
+$Flag = Get-Content -Path $LogParam.FilePath | Where-Object{$_ -match '#UAC_Reboot#'}
 if(!$Flag){
     # Restart the computer in order to apply the UAC changes.
     '#UAC_Reboot#' | Out-File @LogParam
     Restart-Computer -Force
+}
+
+# Export current power configuration.
+$PerformanceGUID = powercfg /LIST | Where-Object{$_ -match "Performance"}
+$CurrentGUID = powercfg /GETACTIVESCHEME
+if($PerformanceGUID -ne $CurrentGUID){
+    "#Powercfg:$($CurrentGUID.Split()[3])#"
+    powercfg /SETACTIVE $($PerformanceGUID.Split()[3])
 }
 
 #-------------------------------------------------------------------------------------------------#
@@ -150,6 +158,8 @@ if(!$Flag){t
 # End & Cleanup :
 
 if($Finish){
+    $Logs = Get-Content -Path $LogParam.FilePath
+
     # Copies the log file back to the original start location.
     $OriginFile = 'C:\Setup\ScriptOrigin.txt'
     if(Test-Path -Path $OriginFile){
@@ -166,4 +176,10 @@ if($Finish){
 
     # Re-enables UAC.
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'EnableLUA' -Value 1
+
+    # Restores power settings.
+    $PowerCfg = $Logs | Where-Object{$_ -match '#Powercfg:'}
+    if($PowerCfg){
+        powercfg /SETACTIVE $($PowerCfg.Replace('#','').Split(':')[1])
+    }
 }
