@@ -535,7 +535,7 @@ Get-ChildItem -Path "HKU:\${mountKey}\AppEvents\Schemes\Apps\*\*" |
 Remove-PSDrive -Name 'HKU';
 		</File>
 		<File path="C:\Windows\Setup\Scripts\unattend-01.cmd">
-reg.exe add "HKU\DefaultUser\Control Panel\Keyboard" /v "InitialKeyboardIndicators" /t "REG_SZ" /d 2147483650 /f
+reg.exe add "HKU\.DEFAULT\Control Panel\Keyboard" /v "InitialKeyboardIndicators" /t "REG_SZ" /d 2147483650 /f
 		</File>
 	</Extensions>
 </unattend>
