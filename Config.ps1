@@ -146,7 +146,7 @@ if($RKey.InitialKeyboardIndicators -ne 2147483650){
 
 # Update installation
 $Flag = Get-Content $FilePath | Where-Object{$_ -match '#Windows_Update_Skip#|#Windows_Update_Done#'}
-if(!$Flag){t
+if(!$Flag){
     try{
         Update-Computer -AutoReboot
     }catch{
